@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>포지션 사이징 계산기</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f5f5f0; color: #1a1a1a; padding: 24px; min-height: 100vh; }
+h1 { font-size: 18px; font-weight: 500; margin-bottom: 20px; color: #1a1a1a; }
+.section { background: #ffffff; border: 0.5px solid rgba(0,0,0,0.12); border-radius: 12px; padding: 20px; margin-bottom: 16px; }
+.section-title { font-size: 11px; font-weight: 500; color: #888; text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 16px; }
+.grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px; }
+.grid3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; margin-bottom: 12px; }
+.field { display: flex; flex-direction: column; gap: 5px; }
+label { font-size: 12px; color: #666; }
+input[type=number] {
+  width: 100%; padding: 8px 10px; font-size: 14px;
+  border: 0.5px solid rgba(0,0,0,0.2); border-radius: 8px;
+  background: #fff; color: #1a1a1a; outline: none;
+  transition: border-color 0.15s;
+}
+input[type=number]:focus { border-color: rgba(0,0,0,0.4); }
+input[type=range] { width: 100%; accent-color: #1a1a1a; }
+.hint { font-size: 11px; color: #888; margin-top: 2px; min-height: 15px; }
+.dash { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; }
+.card { background: #f5f5f0; border-radius: 8px; padding: 14px 16px; }
+.card-label { font-size: 11px; color: #888; margin-bottom: 6px; line-height: 1.4; }
+.card-value { font-size: 20px; font-weight: 500; color: #1a1a1a; line-height: 1.2; }
+.card-value.red { color: #c0392b; }
+.card-value.green { color: #27ae60; }
+.card-value.blue { color: #2980b9; }
+.card-value.warn { color: #e67e22; }
+.card-sub { font-size: 11px; color: #888; margin-top: 3px; }
+.pnl-box { background: #f5f5f0; border-radius: 8px; padding: 12px 16px; display: flex; flex-direction: column; gap: 4px; justify-content: center; }
+.pnl-label { font-size: 11px; color: #888; }
+.pnl-value { font-size: 20px; font-weight: 500; }
+.pnl-value.green { color: #27ae60; }
+.pnl-value.red { color: #c0392b; }
+.pnl-value.gray { color: #888; }
+.pnl-sub { font-size: 11px; color: #888; }
+.slider-block { display: flex; flex-direction: column; gap: 6px; }
+.slider-header { display: flex; justify-content: space-between; align-items: baseline; }
+.slider-name { font-size: 12px; color: #666; }
+.slider-num { font-size: 15px; font-weight: 500; color: #1a1a1a; }
+.comment { border-radius: 8px; padding: 14px 16px; font-size: 13px; line-height: 1.7; margin-top: 12px; }
+.comment.ok { background: #eafaf1; color: #1e8449; }
+.comment.warn { background: #fef9e7; color: #b7770d; }
+.comment.danger { background: #fdedec; color: #a93226; }
+.trailing-alert { background: #fef9e7; border: 0.5px solid #f0ca4d; border-radius: 8px; padding: 14px 16px; font-size: 13px; color: #b7770d; line-height: 1.6; margin-top: 10px; display: none; }
+.link-badge { display: inline-block; font-size: 10px; padding: 1px 6px; border-radius: 20px; background: #eaf4fb; color: #2980b9; margin-left: 6px; vertical-align: middle; font-weight: 500; }
+</style>
+</head>
+<body>
+
+<h1>포지션 사이징 계산기</h1>
+
+<div class="section">
+  <div class="section-title">계좌 설정</div>
+  <div class="grid2">
+    <div class="field">
+      <label>총 계좌 잔고</label>
+      <input type="number" id="total-bal" value="10000000" oninput="calc()" />
+      <div class="hint" id="hint-total"></div>
+    </div>
+    <div class="field">
+      <label>분리 계좌 잔고</label>
+      <input type="number" id="sep-bal" value="3000000" oninput="calc()" />
+      <div class="hint" id="hint-sep"></div>
+    </div>
+  </div>
+</div>
+
+<div class="section">
+  <div class="section-title">종목 정보</div>
+  <div class="grid3">
+    <div class="field">
+      <label>현재가</label>
+      <input type="number" id="current" value="72000" oninput="calc()" />
+      <div class="hint" id="hint-current"></div>
+    </div>
+    <div class="field">
+      <label>진입가</label>
+      <input type="number" id="entry" value="70000" oninput="calc()" />
+      <div class="hint" id="hint-entry"></div>
+    </div>
+    <div class="field">
+      <label>손절가</label>
+      <input type="number" id="stop" value="65000" oninput="calc()" />
+      <div class="hint" id="hint-stop"></div>
+    </div>
+  </div>
+  <div class="grid2" style="margin-bottom:0;">
+    <div class="field">
+      <label>매수 수량</label>
+      <input type="number" id="qty" value="10" oninput="calc()" />
+    </div>
+    <div class="pnl-box">
+      <div class="pnl-label">현재 손익</div>
+      <div class="pnl-value gray" id="inline-pnl">-</div>
+      <div class="pnl-sub" id="inline-pnl-sub">-</div>
+    </div>
+  </div>
+  <div class="trailing-alert" id="trailing-alert">
+    이익 중입니다. 트레일링 스탑으로 이익을 보존하세요. 현재가 아래로 손절선을 올려 수익을 지키는 전략을 권장합니다.
+  </div>
+</div>
+
+<div class="section">
+  <div class="section-title">리스크 한도 설정 <span class="link-badge">연동</span></div>
+  <div style="display:flex; flex-direction:column; gap:16px;">
+    <div class="slider-block">
+      <div class="slider-header">
+        <span class="slider-name">총 계좌 대비 리스크 한도</span>
+        <span class="slider-num"><span id="risk-total-val">2.0</span>%</span>
+      </div>
+      <input type="range" id="risk-total" min="0.1" max="10" step="0.1" value="2" oninput="onTotalSlider()" />
+    </div>
+    <div class="slider-block">
+      <div class="slider-header">
+        <span class="slider-name">분리계좌 대비 리스크 한도</span>
+        <span class="slider-num"><span id="risk-sep-val">6.7</span>%</span>
+      </div>
+      <input type="range" id="risk-sep" min="0.1" max="30" step="0.1" value="6.7" oninput="onSepSlider()" />
+    </div>
+  </div>
+</div>
+
+<div class="section">
+  <div class="section-title">계산 결과 대시보드</div>
+  <div class="dash">
+    <div class="card">
+      <div class="card-label">총 투자금액</div>
+      <div class="card-value blue" id="r-invest">-</div>
+      <div class="card-sub" id="r-invest-sub">-</div>
+    </div>
+    <div class="card">
+      <div class="card-label">현재가 기준 평가손익</div>
+      <div class="card-value" id="r-unrealized">-</div>
+      <div class="card-sub" id="r-unrealized-sub">-</div>
+    </div>
+    <div class="card">
+      <div class="card-label">손절 시 -% 율</div>
+      <div class="card-value red" id="r-stop-pct">-</div>
+      <div class="card-sub">진입가 대비</div>
+    </div>
+    <div class="card">
+      <div class="card-label">최대 손실 금액</div>
+      <div class="card-value red" id="r-max-loss">-</div>
+      <div class="card-sub" id="r-max-loss-sub">-</div>
+    </div>
+    <div class="card">
+      <div class="card-label">총 계좌 대비 리스크</div>
+      <div class="card-value" id="r-total-risk">-</div>
+      <div class="card-sub" id="r-total-risk-sub">-</div>
+    </div>
+    <div class="card">
+      <div class="card-label">분리계좌 대비 리스크</div>
+      <div class="card-value" id="r-sep-risk">-</div>
+      <div class="card-sub" id="r-sep-risk-sub">-</div>
+    </div>
+    <div class="card">
+      <div class="card-label">분리계좌 기준 권장 수량</div>
+      <div class="card-value" id="r-rec-sep">-</div>
+      <div class="card-sub">분리계좌 한도 기준</div>
+    </div>
+    <div class="card">
+      <div class="card-label">총계좌 기준 권장 수량</div>
+      <div class="card-value" id="r-rec-total">-</div>
+      <div class="card-sub">총계좌 한도 기준</div>
+    </div>
+  </div>
+  <div id="comment" class="comment ok"></div>
+</div>
+
+<script>
+let updating = false;
+
+function toKorean(n) {
+  if (!n || isNaN(n)) return '';
+  const abs = Math.abs(n);
+  const sign = n < 0 ? '-' : '';
+  if (abs >= 1000000000000) return sign + (abs/1000000000000).toFixed(1).replace(/\.0$/,'') + '조원';
+  if (abs >= 100000000) {
+    const uk = Math.floor(abs/100000000);
+    const rem = Math.round((abs%100000000)/10000);
+    return sign + uk + (rem > 0 ? '억 ' + rem + '만원' : '억원');
+  }
+  if (abs >= 10000) return sign + Math.round(abs/10000) + '만원';
+  return sign + Math.round(abs).toLocaleString() + '원';
+}
+
+function getTotalBal() { return parseFloat(document.getElementById('total-bal').value)||0; }
+function getSepBal() { return parseFloat(document.getElementById('sep-bal').value)||0; }
+
+function onTotalSlider() {
+  if (updating) return; updating = true;
+  const t = getTotalBal(), s = getSepBal();
+  const rt = parseFloat(document.getElementById('risk-total').value);
+  document.getElementById('risk-total-val').textContent = rt.toFixed(1);
+  if (t > 0 && s > 0) {
+    const rs = Math.min(Math.max(t*rt/100/s*100, 0.1), 30);
+    document.getElementById('risk-sep').value = rs.toFixed(1);
+    document.getElementById('risk-sep-val').textContent = rs.toFixed(1);
+  }
+  updating = false; calc();
+}
+
+function onSepSlider() {
+  if (updating) return; updating = true;
+  const t = getTotalBal(), s = getSepBal();
+  const rs = parseFloat(document.getElementById('risk-sep').value);
+  document.getElementById('risk-sep-val').textContent = rs.toFixed(1);
+  if (t > 0 && s > 0) {
+    const rt = Math.min(Math.max(s*rs/100/t*100, 0.1), 10);
+    document.getElementById('risk-total').value = rt.toFixed(1);
+    document.getElementById('risk-total-val').textContent = rt.toFixed(1);
+  }
+  updating = false; calc();
+}
+
+function fmt(n) { return Math.round(Math.abs(n)).toLocaleString(); }
+function set(id, val) { document.getElementById(id).textContent = val; }
+function setColor(id, cls) { document.getElementById(id).className = 'card-value ' + cls; }
+
+function calc() {
+  const totalBal = getTotalBal();
+  const sepBal = getSepBal();
+  const current = parseFloat(document.getElementById('current').value)||0;
+  const entry = parseFloat(document.getElementById('entry').value)||0;
+  const stop = parseFloat(document.getElementById('stop').value)||0;
+  const qty = parseFloat(document.getElementById('qty').value)||0;
+  const riskTotal = parseFloat(document.getElementById('risk-total').value)||2;
+  const riskSep = parseFloat(document.getElementById('risk-sep').value)||5;
+
+  set('hint-total', totalBal > 0 ? toKorean(totalBal) : '');
+  set('hint-sep', sepBal > 0 ? toKorean(sepBal) : '');
+  set('hint-current', current > 0 ? toKorean(current) : '');
+  set('hint-entry', entry > 0 ? toKorean(entry) : '');
+  set('hint-stop', stop > 0 ? toKorean(stop) : '');
+
+  if (!entry || !stop) return;
+
+  const lossPerShare = Math.abs(entry - stop);
+  const stopPct = (stop - entry) / entry * 100;
+  const maxLoss = lossPerShare * qty;
+  const invest = entry * qty;
+  const unrealized = (current - entry) * qty;
+  const unrealizedPct = entry > 0 ? (current - entry) / entry * 100 : 0;
+  const totalRiskPct = totalBal > 0 ? maxLoss / totalBal * 100 : 0;
+  const sepRiskPct = sepBal > 0 ? maxLoss / sepBal * 100 : 0;
+  const recQtyTotal = totalBal > 0 && lossPerShare > 0 ? Math.floor(totalBal*riskTotal/100/lossPerShare) : 0;
+  const recQtySep = sepBal > 0 && lossPerShare > 0 ? Math.floor(sepBal*riskSep/100/lossPerShare) : 0;
+  const investPctTotal = totalBal > 0 ? invest/totalBal*100 : 0;
+  const investPctSep = sepBal > 0 ? invest/sepBal*100 : 0;
+
+  const inlinePnl = document.getElementById('inline-pnl');
+  if (current && entry && qty) {
+    const sign = unrealized >= 0 ? '+' : '-';
+    inlinePnl.textContent = sign + fmt(unrealized);
+    inlinePnl.className = 'pnl-value ' + (unrealized > 0 ? 'green' : unrealized < 0 ? 'red' : 'gray');
+    set('inline-pnl-sub', (unrealizedPct >= 0 ? '+' : '') + unrealizedPct.toFixed(2) + '%  |  ' + toKorean(Math.abs(unrealized)));
+  }
+
+  document.getElementById('trailing-alert').style.display = (current > entry && qty > 0) ? 'block' : 'none';
+
+  set('r-invest', fmt(invest));
+  set('r-invest-sub', '총계좌 ' + investPctTotal.toFixed(1) + '% / 분리 ' + investPctSep.toFixed(1) + '%');
+
+  const unSign = unrealized >= 0 ? '+' : '-';
+  set('r-unrealized', unSign + fmt(unrealized));
+  set('r-unrealized-sub', (unrealizedPct >= 0 ? '+' : '') + unrealizedPct.toFixed(2) + '%');
+  setColor('r-unrealized', unrealized > 0 ? 'green' : unrealized < 0 ? 'red' : 'blue');
+
+  set('r-stop-pct', stopPct.toFixed(2) + '%');
+  set('r-max-loss', '-' + fmt(maxLoss));
+  set('r-max-loss-sub', qty + '주 × ' + fmt(lossPerShare) + '/주');
+
+  set('r-total-risk', totalRiskPct.toFixed(2) + '%');
+  set('r-total-risk-sub', '한도 ' + riskTotal.toFixed(1) + '%');
+  setColor('r-total-risk', totalRiskPct > riskTotal*1.5 ? 'red' : totalRiskPct > riskTotal ? 'warn' : 'green');
+
+  set('r-sep-risk', sepRiskPct.toFixed(2) + '%');
+  set('r-sep-risk-sub', '한도 ' + riskSep.toFixed(1) + '%');
+  setColor('r-sep-risk', sepRiskPct > riskSep*1.5 ? 'red' : sepRiskPct > riskSep ? 'warn' : 'green');
+
+  set('r-rec-sep', recQtySep.toLocaleString() + '주');
+  setColor('r-rec-sep', qty <= recQtySep ? 'green' : 'warn');
+
+  set('r-rec-total', recQtyTotal.toLocaleString() + '주');
+  setColor('r-rec-total', qty <= recQtyTotal ? 'green' : 'warn');
+
+  const msgs = []; let level = 'ok';
+  if (totalRiskPct > riskTotal) { msgs.push('총계좌 리스크 ' + totalRiskPct.toFixed(1) + '%가 한도 ' + riskTotal.toFixed(1) + '%를 초과합니다.'); level = 'danger'; }
+  if (sepRiskPct > riskSep) { msgs.push('분리계좌 리스크 ' + sepRiskPct.toFixed(1) + '%가 한도 ' + riskSep.toFixed(1) + '%를 초과합니다.'); level = 'danger'; }
+  if (qty > recQtyTotal) { msgs.push('총계좌 기준 권장 수량은 ' + recQtyTotal + '주입니다.'); if (level !== 'danger') level = 'warn'; }
+  else if (qty > recQtySep) { msgs.push('분리계좌 기준 권장 수량은 ' + recQtySep + '주입니다.'); if (level !== 'danger') level = 'warn'; }
+  if (msgs.length === 0) msgs.push('리스크 관리 양호 — 총계좌 ' + totalRiskPct.toFixed(1) + '% / 분리계좌 ' + sepRiskPct.toFixed(1) + '%로 한도 내입니다.');
+
+  const c = document.getElementById('comment');
+  c.textContent = msgs.join(' ');
+  c.className = 'comment ' + level;
+}
+
+calc();
+</script>
+</body>
+</html>
